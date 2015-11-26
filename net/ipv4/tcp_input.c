@@ -5984,6 +5984,7 @@ discard:
          */
         tp->snd_wnd    = ntohs(th->window);
         tp->snd_wl1    = TCP_SKB_CB(skb)->seq;
+        tp->copied_seq = tp->rcv_nxt;
         tp->max_window = tp->snd_wnd;
 
         TCP_ECN_rcv_syn(tp, th);
