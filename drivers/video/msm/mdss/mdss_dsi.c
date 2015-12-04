@@ -45,6 +45,10 @@ extern int lgd_qhd_command_dsi_panel_set_voltage(struct device_node *supply_node
 		struct dss_vreg *vreg_config, char *cmd_key, int num_of_rev);
 #endif
 
+#ifdef CONFIG_STATE_NOTIFIER
+#include <linux/state_notifier.h>
+#endif
+
 static struct dsi_drv_cm_data shared_ctrl_data;
 
 static int mdss_dsi_pinctrl_set_state(struct mdss_dsi_ctrl_pdata *ctrl_pdata,
@@ -1551,6 +1555,9 @@ static int mdss_dsi_event_handler(struct mdss_panel_data *pdata,
 		if (ctrl_pdata->on_cmds.link_state == DSI_HS_MODE)
 			rc = mdss_dsi_unblank(pdata);
 		pdata->panel_info.esd_rdy = true;
+#ifdef CONFIG_STATE_NOTIFIER
+		state_resume();
+#endif
 		break;
 	case MDSS_EVENT_BLANK:
 #if IS_ENABLED(CONFIG_LGE_DISPLAY_POWER_SEQUENCE)
@@ -1571,6 +1578,9 @@ static int mdss_dsi_event_handler(struct mdss_panel_data *pdata,
 #if IS_ENABLED(CONFIG_LGE_DISPLAY_POWER_SEQUENCE)
 		if (lge_mdss_dsi.lge_mdss_dsi_event_handler)
 			lge_mdss_dsi.lge_mdss_dsi_event_handler(pdata, event, arg);
+#endif
+#ifdef CONFIG_STATE_NOTIFIER
+		state_suspend();
 #endif
 		break;
 	case MDSS_EVENT_CONT_SPLASH_FINISH:
