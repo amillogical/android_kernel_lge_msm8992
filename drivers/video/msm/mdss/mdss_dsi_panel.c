@@ -22,7 +22,7 @@
 #include <linux/qpnp/pwm.h>
 #include <linux/err.h>
 #include <linux/string.h>
-
+#include <linux/display_state.h>
 #include "mdss_dsi.h"
 
 #if IS_ENABLED(CONFIG_LGE_READER_MODE)
@@ -57,6 +57,14 @@ extern int mdss_dsi_cmdlist_rx(struct mdss_dsi_ctrl_pdata *ctrl,
 				struct dcs_cmd_req *req);
 
 DEFINE_LED_TRIGGER(bl_led_trigger);
+
+bool display_on = true;
+
+bool is_display_on(void)
+{
+        return display_on;
+}
+
 
 extern void lazyplug_enter_lazy(bool enter, bool video);
 
@@ -716,6 +724,7 @@ static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 	}
 
 	lazyplug_enter_lazy(false, false);
+	display_on = true;
 
 	pinfo = &pdata->panel_info;
 	ctrl = container_of(pdata, struct mdss_dsi_ctrl_pdata,
@@ -808,6 +817,8 @@ static int mdss_dsi_panel_off(struct mdss_panel_data *pdata)
 #endif
 
         lazyplug_enter_lazy(true, false);
+
+	display_on = false;
 
 end:
 	pinfo->blank_state = MDSS_PANEL_BLANK_BLANK;
