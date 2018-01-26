@@ -352,7 +352,7 @@ static int put_v4l2_standard32(struct v4l2_standard __user *kp, struct v4l2_stan
 {
 	if (!access_ok(VERIFY_WRITE, up, sizeof(struct v4l2_standard32)) ||
 		convert_in_user(&kp->index, &up->index) ||
-		copy_in_user(up->id, &kp->id, sizeof(__u64)) ||
+		convert_in_user(&kp->id, &up->id) ||
 		copy_in_user(up->name, kp->name, 24) ||
 		copy_in_user(&up->frameperiod, &kp->frameperiod, sizeof(kp->frameperiod)) ||
 		convert_in_user(&kp->framelines, &up->framelines) ||
