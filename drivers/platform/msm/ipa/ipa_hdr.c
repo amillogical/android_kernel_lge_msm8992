@@ -1,5 +1,4 @@
-/* Copyright (c) 2012-2015, The Linux Foundation. All rights reserved.
->>>>>>> 357c7c9... [Kernel] Google Security Patch 2017#03 DS: High-CVE-2017-0525 (A-33139056)
+/* Copyright (c) 2012-2017, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and

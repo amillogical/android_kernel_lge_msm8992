@@ -313,13 +313,21 @@ static ssize_t rmidev_read(struct file *filp, char __user *buf,
 		retval = -EFAULT;
 		goto unlock;
 	}
+<<<<<<< HEAD
 
 	tmpbuf = kzalloc(count + 1, GFP_KERNEL);
 	if (!tmpbuf) {
 		retval = -ENOMEM;
 		goto unlock;
 	}
+=======
+>>>>>>> 3cd60421ddcd605e481418c3edb8cfda622bd734
 
+	tmpbuf = kzalloc(count + 1, GFP_KERNEL);
+	if (!tmpbuf) {
+		retval = -ENOMEM;
+		goto unlock;
+	}
 	retval = rmidev->fn_ptr->read(rmidev->rmi4_data,
 			*f_pos,
 			tmpbuf,
@@ -336,7 +344,10 @@ clean_up:
 	kfree(tmpbuf);
 unlock:
 	mutex_unlock(&(dev_data->file_mutex));
+<<<<<<< HEAD
 
+=======
+>>>>>>> 3cd60421ddcd605e481418c3edb8cfda622bd734
 	return retval;
 }
 

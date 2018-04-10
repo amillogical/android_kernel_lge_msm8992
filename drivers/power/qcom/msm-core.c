@@ -461,6 +461,8 @@ static long msm_core_ioctl(struct file *file, unsigned int cmd,
 	struct cpu_activity_info *node = NULL;
 #ifdef CONFIG_MACH_LGE
 	struct sched_params  *kargp = NULL;
+#else
+	int cluster;
 #endif
 	struct sched_params __user *argp = (struct sched_params __user *)arg;
 	int i, cpu = num_possible_cpus();
@@ -485,9 +487,10 @@ static long msm_core_ioctl(struct file *file, unsigned int cmd,
 	cpumask = kargp->cpumask;
 
 #else
-	mpidr = (argp->cluster << (MAX_CORES_PER_CLUSTER *
+	get_user(cluster, &argp->cluster);
+	mpidr = (cluster << (MAX_CORES_PER_CLUSTER *
 			MAX_NUM_OF_CLUSTERS));
-	cpumask = argp->cpumask;
+	get_user(cpumask, &argp->cpumask);
 
 #endif
 	switch (cmd) {
