@@ -1613,6 +1613,8 @@ static void qpnp_hap_td_enable(struct timed_output_dev *dev, int value)
 {
 	struct qpnp_hap *hap = container_of(dev, struct qpnp_hap,
 					 timed_dev);
+	int rc = 0;
+
 	pr_debug("[LGE VIBRATOR] qpnp_hap_td_enable timeout_ms : %d , voltage : %d\n", value , hap->vmax_mv);
 
 	mutex_lock(&hap->lock);
