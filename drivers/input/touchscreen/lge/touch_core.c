@@ -367,7 +367,7 @@ static int touch_init_input(struct touch_core_data *ts)
 			ts->caps.max_x, 0, 0);
 #ifdef CONFIG_MACH_MSM8992_PPLUS
 	input_set_abs_params(input, ABS_MT_POSITION_Y, 80,
-			ts->caps.max_y, 0, 0);
+			2800, 0, 0);
 #else
 	input_set_abs_params(input, ABS_MT_POSITION_Y, 0,
 			ts->caps.max_y, 0, 0);
