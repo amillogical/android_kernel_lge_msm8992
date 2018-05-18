@@ -61,7 +61,6 @@ static uint8_t _std_init_vector_sha256_uint8[] = {
 
 static DEFINE_MUTEX(send_cmd_lock);
 static DEFINE_MUTEX(qcedev_sent_bw_req);
-static DEFINE_MUTEX(hash_access_lock);
 
 static void qcedev_ce_high_bw_req(struct qcedev_control *podev,
 							bool high_bw_req)
@@ -284,6 +283,8 @@ void qcedev_sha_req_cb(void *cookie, unsigned char *digest,
 	if (authdata) {
 		handle->sha_ctxt.auth_data[0] = auth32[0];
 		handle->sha_ctxt.auth_data[1] = auth32[1];
+		handle->sha_ctxt.auth_data[2] = auth32[2];
+		handle->sha_ctxt.auth_data[3] = auth32[3];
 	}
 
 	tasklet_schedule(&pdev->done_tasklet);
@@ -1500,11 +1501,6 @@ static int qcedev_check_cipher_params(struct qcedev_cipher_op_req *req,
 	}
 	/* Check for sum of all dst length is equal to data_len  */
 	for (i = 0, total = 0; i < req->entries; i++) {
-		if (!req->vbuf.dst[i].vaddr && req->vbuf.dst[i].len) {
-			pr_err("%s: NULL req dst vbuf[%d] with length %d\n",
-				__func__, i, req->vbuf.dst[i].len);
-			goto error;
-		}
 		if (req->vbuf.dst[i].len >= U32_MAX - total) {
 			pr_err("%s: Integer overflow on total req dst vbuf length\n",
 				__func__);
@@ -1519,11 +1515,6 @@ static int qcedev_check_cipher_params(struct qcedev_cipher_op_req *req,
 	}
 	/* Check for sum of all src length is equal to data_len  */
 	for (i = 0, total = 0; i < req->entries; i++) {
-		if (!req->vbuf.src[i].vaddr && req->vbuf.src[i].len) {
-			pr_err("%s: NULL req src vbuf[%d] with length %d\n",
-				__func__, i, req->vbuf.src[i].len);
-			goto error;
-		}
 		if (req->vbuf.src[i].len > U32_MAX - total) {
 			pr_err("%s: Integer overflow on total req src vbuf length\n",
 				__func__);
@@ -1658,18 +1649,12 @@ long qcedev_ioctl(struct file *file, unsigned cmd, unsigned long arg)
 					(void __user *)arg,
 					sizeof(struct qcedev_sha_op_req)))
 			return -EFAULT;
-		mutex_lock(&hash_access_lock);
-		if (qcedev_check_sha_params(&qcedev_areq.sha_op_req, podev)) {
-			mutex_unlock(&hash_access_lock);
+		if (qcedev_check_sha_params(&qcedev_areq.sha_op_req, podev))
 			return -EINVAL;
-		}
 		qcedev_areq.op_type = QCEDEV_CRYPTO_OPER_SHA;
 		err = qcedev_hash_init(&qcedev_areq, handle, &sg_src);
-		if (err) {
-			mutex_unlock(&hash_access_lock);
+		if (err)
 			return err;
-		}
-		mutex_unlock(&hash_access_lock);
 		if (copy_to_user((void __user *)arg, &qcedev_areq.sha_op_req,
 					sizeof(struct qcedev_sha_op_req)))
 			return -EFAULT;
@@ -1687,42 +1672,32 @@ long qcedev_ioctl(struct file *file, unsigned cmd, unsigned long arg)
 					(void __user *)arg,
 					sizeof(struct qcedev_sha_op_req)))
 			return -EFAULT;
-		mutex_lock(&hash_access_lock);
-		if (qcedev_check_sha_params(&qcedev_areq.sha_op_req, podev)) {
-			mutex_unlock(&hash_access_lock);
+		if (qcedev_check_sha_params(&qcedev_areq.sha_op_req, podev))
 			return -EINVAL;
-		}
 		qcedev_areq.op_type = QCEDEV_CRYPTO_OPER_SHA;
 
 		if (qcedev_areq.sha_op_req.alg == QCEDEV_ALG_AES_CMAC) {
 			err = qcedev_hash_cmac(&qcedev_areq, handle, &sg_src);
-			if (err) {
-				mutex_unlock(&hash_access_lock);
+			if (err)
 				return err;
-			}
 		} else {
 			if (handle->sha_ctxt.init_done == false) {
 				pr_err("%s Init was not called\n", __func__);
-				mutex_unlock(&hash_access_lock);
 				return -EINVAL;
 			}
 			err = qcedev_hash_update(&qcedev_areq, handle, &sg_src);
-			if (err) {
-				mutex_unlock(&hash_access_lock);
+			if (err)
 				return err;
-			}
 		}
 
 		if (handle->sha_ctxt.diglen > QCEDEV_MAX_SHA_DIGEST) {
 			pr_err("Invalid sha_ctxt.diglen %d\n",
 					handle->sha_ctxt.diglen);
-			mutex_unlock(&hash_access_lock);
 			return -EINVAL;
 		}
 		memcpy(&qcedev_areq.sha_op_req.digest[0],
 				&handle->sha_ctxt.digest[0],
 				handle->sha_ctxt.diglen);
-		mutex_unlock(&hash_access_lock);
 		if (copy_to_user((void __user *)arg, &qcedev_areq.sha_op_req,
 					sizeof(struct qcedev_sha_op_req)))
 			return -EFAULT;
@@ -1739,29 +1714,16 @@ long qcedev_ioctl(struct file *file, unsigned cmd, unsigned long arg)
 					(void __user *)arg,
 					sizeof(struct qcedev_sha_op_req)))
 			return -EFAULT;
-		mutex_lock(&hash_access_lock);
-		if (qcedev_check_sha_params(&qcedev_areq.sha_op_req, podev)) {
-			mutex_unlock(&hash_access_lock);
+		if (qcedev_check_sha_params(&qcedev_areq.sha_op_req, podev))
 			return -EINVAL;
-		}
 		qcedev_areq.op_type = QCEDEV_CRYPTO_OPER_SHA;
 		err = qcedev_hash_final(&qcedev_areq, handle);
-		if (err) {
-			mutex_unlock(&hash_access_lock);
+		if (err)
 			return err;
-		}
-
-		if (handle->sha_ctxt.diglen > QCEDEV_MAX_SHA_DIGEST) {
-			pr_err("Invalid sha_ctxt.diglen %d\n",
-					handle->sha_ctxt.diglen);
-			mutex_unlock(&hash_access_lock);
-			return -EINVAL;
-		}
 		qcedev_areq.sha_op_req.diglen = handle->sha_ctxt.diglen;
 		memcpy(&qcedev_areq.sha_op_req.digest[0],
 				&handle->sha_ctxt.digest[0],
 				handle->sha_ctxt.diglen);
-		mutex_unlock(&hash_access_lock);
 		if (copy_to_user((void __user *)arg, &qcedev_areq.sha_op_req,
 					sizeof(struct qcedev_sha_op_req)))
 			return -EFAULT;
@@ -1776,35 +1738,20 @@ long qcedev_ioctl(struct file *file, unsigned cmd, unsigned long arg)
 					(void __user *)arg,
 					sizeof(struct qcedev_sha_op_req)))
 			return -EFAULT;
-		mutex_lock(&hash_access_lock);
-		if (qcedev_check_sha_params(&qcedev_areq.sha_op_req, podev)) {
-			mutex_unlock(&hash_access_lock);
+		if (qcedev_check_sha_params(&qcedev_areq.sha_op_req, podev))
 			return -EINVAL;
-		}
 		qcedev_areq.op_type = QCEDEV_CRYPTO_OPER_SHA;
 		qcedev_hash_init(&qcedev_areq, handle, &sg_src);
 		err = qcedev_hash_update(&qcedev_areq, handle, &sg_src);
-		if (err) {
-			mutex_unlock(&hash_access_lock);
+		if (err)
 			return err;
-		}
 		err = qcedev_hash_final(&qcedev_areq, handle);
-		if (err) {
-			mutex_unlock(&hash_access_lock);
+		if (err)
 			return err;
-		}
-
-		if (handle->sha_ctxt.diglen > QCEDEV_MAX_SHA_DIGEST) {
-			pr_err("Invalid sha_ctxt.diglen %d\n",
-					handle->sha_ctxt.diglen);
-			mutex_unlock(&hash_access_lock);
-			return -EINVAL;
-		}
 		qcedev_areq.sha_op_req.diglen =	handle->sha_ctxt.diglen;
 		memcpy(&qcedev_areq.sha_op_req.digest[0],
 				&handle->sha_ctxt.digest[0],
 				handle->sha_ctxt.diglen);
-		mutex_unlock(&hash_access_lock);
 		if (copy_to_user((void __user *)arg, &qcedev_areq.sha_op_req,
 					sizeof(struct qcedev_sha_op_req)))
 			return -EFAULT;
@@ -1819,7 +1766,11 @@ long qcedev_ioctl(struct file *file, unsigned cmd, unsigned long arg)
 		if (is_fips_qcedev_integritytest_done)
 			return -EPERM;
 
-		if (copy_from_user(&status, (void __user *)arg,
+		if (!access_ok(VERIFY_WRITE, (void __user *)arg,
+			sizeof(enum fips_status)))
+			return -EFAULT;
+
+		if (__copy_from_user(&status, (void __user *)arg,
 			sizeof(enum fips_status)))
 			return -EFAULT;
 
@@ -1848,9 +1799,12 @@ long qcedev_ioctl(struct file *file, unsigned cmd, unsigned long arg)
 	case QCEDEV_IOCTL_QUERY_FIPS_STATUS:
 		{
 		enum fips_status status;
+		if (!access_ok(VERIFY_WRITE, (void __user *)arg,
+			sizeof(enum fips_status)))
+			return -EFAULT;
 
 		status = g_fips140_status;
-		if (copy_to_user((void __user *)arg, &status,
+		if (__copy_to_user((void __user *)arg, &status,
 			sizeof(enum fips_status)))
 			return -EFAULT;
 
