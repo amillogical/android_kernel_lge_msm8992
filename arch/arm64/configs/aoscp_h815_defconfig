@@ -3999,6 +3999,8 @@ CONFIG_SDFAT_VIRTUAL_XATTR_SELINUX_LABEL="u:object_r:vfat:s0"
 # CONFIG_SDFAT_DBG_MSG is not set
 CONFIG_SDFAT_STATISTICS=y
 
+#FRANDOM Generator
+CONFIG_FRANDOM=y
 #
 # Pseudo filesystems
 #
